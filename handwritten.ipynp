@@ -1,0 +1,467 @@
+
+
+
+Installing Packages....
+pip install tensorflow
+conda install graphviz 
+pip install graphviz
+pip install pydot
+
+
+
+
+#Importing packages...
+import numpy as np
+import tensorflow as tf 
+from tensorflow import keras 
+import matplotlib.pyplot as plt
+import seaborn as sns 
+from sklearn.metrics import confusion_matrix
+import itertools
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense,BatchNormalization
+from keras.layers.advanced_activations import LeakyReLU
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+
+
+# ### First of all we load our MNIST DATA
+
+
+
+
+#loading data...
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
+
+
+# In[9]:
+
+
+#Trainning and testing shape
+print('Training data dimensions: ', x_train.shape, y_train.shape)
+print('Test data dimensions: ', x_test.shape, y_test.shape)
+
+
+# In[10]:
+
+
+#Number of classe
+classes = np.unique(y_train)
+nClasses = len(classes)
+print('Total number of outputs : ', nClasses)
+print('Output classes : ', classes)
+
+
+# In[11]:
+
+
+#Showing some data in the MNIS database
+for i in range(4):  
+    plt.subplot(2,2,0+1+i)
+    plt.imshow(x_train[i], cmap=plt.get_cmap('gray'))
+    plt.title(f"Digit: {y_train[i]}")
+
+
+# In[12]:
+
+
+# convert in float32 (more memory allocated)
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+
+# scale to 0-1, note the 
+x_train = x_train / 255.
+x_test = x_test / 255.
+
+
+# ## Part 1 : Architecture A for a neural network without convolution
+# In this part :
+# 
+#     - we create first our architecture
+#     
+#     - Implement the architecture diagram 
+#     
+#     - Train the neural network on the MNIST dataset (training set only)
+#     
+#     - Visualize the evolution of our model’s accuracy
+#     
+#     - Visualize the prediction of the neural network for a new input image
+
+# In[13]:
+
+
+# First we reshape into  2D objects
+x_train_A = x_train.reshape(x_train.shape[0], 28*28)
+x_test_A = x_test.reshape(x_test.shape[0], 28*28)
+
+
+# In[14]:
+
+
+#we convert y trainnng and testing into binary
+y_train = keras.utils.to_categorical(y_train)
+y_test = keras.utils.to_categorical(y_test)
+print('y in binary representation:', y_train[123])
+
+
+# ### Model Creation 
+
+# In[15]:
+
+
+#https://www.machinecurve.com/index.php/2019/07/27/how-to-create-a-basic-mlp-classifier-with-the-keras-sequential-api/
+# Set the input shape
+input_shape = (28*28,)
+
+# Create the model
+model = Sequential()
+model.add(Dense(360, input_shape=input_shape, activation='linear'))
+model.add(LeakyReLU(alpha=0.1))
+model.add(Dense(100, activation='linear'))
+model.add(LeakyReLU(alpha=0.1))
+model.add(Dense(20, activation='linear'))
+model.add(LeakyReLU(alpha=0.1))
+model.add(BatchNormalization())
+model.add(Dense(10, activation='softmax'))
+model.summary()
+
+
+# ### Implement Architecture A
+
+# In[16]:
+
+
+#implement Architecture A
+keras.utils.plot_model(model, show_shapes=True)
+
+
+#  ### Trainning the Neuronal Network A on Mnist Dataset
+
+# In[17]:
+
+
+# Firt we compile the model by choosing the loss, the metrics and the otpimizer
+model.compile(loss="categorical_crossentropy", metrics=['accuracy'], optimizer='adam')
+
+
+# In[18]:
+
+
+#Then we train our model
+A= model.fit(x_train_A, y_train, epochs=15,)
+
+
+# ### Visualize the evolution of the model’s accuracy
+
+# In[19]:
+
+
+#plot the loss function 
+sns.set()
+plt.figure(figsize=(10,6))
+plt.subplot(1, 2, 1)
+plt.plot(A.history['loss'])
+plt.title('MLP model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train'], loc='upper left')
+#plot the accuracy
+plt.subplot(1, 2, 2)
+plt.plot(A.history['accuracy'])
+plt.title('MLP model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train'], loc='upper left')
+plt.show()
+
+
+# ### Prediction 
+
+# In[20]:
+
+
+#prediction with numpy
+y_pred_prob = model.predict(x_test_A)
+y_pred = np.argmax(y_pred_prob, axis=1)
+
+
+# In[21]:
+
+
+#ploting a prediction based on our testing sample
+i=np.random.randint(1,10000)
+sns.set_style("white")
+plt.imshow(x_test[i,:,:],cmap='gray')
+plt.title(f"True digit: {np.argmax(y_test[i])}")
+print(f'MLP model prediction : {y_pred[i]} with predicted probability : \n{y_pred_prob[i]}')
+plt.show()
+
+
+# In[22]:
+
+
+#Here we create a list of our images for which the model predict poorly
+#We call this list false_indices
+false_indices =  np.where(np.argmax(y_test,axis = 1) != y_pred) ## false_indices is then a tuple 
+false_indices[0].shape
+print(false_indices[0])
+print(false_indices[0][9])
+
+
+# In[23]:
+
+
+## Here we show a exemple of poor prediction
+## We choose false_indices[0][19] who is the 20th image for which the model predict poorly
+plt.imshow(x_test[false_indices[0][19],:,:], cmap='gray') 
+plt.title(f"True digit: {np.argmax(y_test[false_indices[0][19]])}")
+print(f'MLP model prediction : {y_pred[false_indices[0][19]]} with predicted probability : \n{y_pred_prob[false_indices[0][19]]}')
+
+
+# In[24]:
+
+
+#Our Model accuracy
+loss, accuracy = model.evaluate(x_test_A,y_test)
+print()
+print("MLP model accuracy: %0.3f " % (accuracy))
+
+
+# In[25]:
+
+
+#Here we reshape our y_test in order to create our confusion matrix
+# We named this new shape y_test_copy
+y_test_copy = np.argmax(y_test,axis = 1)
+
+
+# In[26]:
+
+
+#Evaluation of the classification accuracy
+cfm = confusion_matrix(y_test_copy,y_pred,labels=np.arange(0,10).tolist())
+
+
+# In[27]:
+
+
+#Here we create a new function named plot_confusion_matrix in order to plot our confusion matrix
+
+def plot_confusion_matrix(cfm,target_names,title='Confusion matrix',cmap=None,normalize=True,color='Reds'):
+    accuracy = np.trace(cfm) / np.sum(cfm).astype('float')
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap(color)
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cfm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cfm = cfm.astype('float') / cfm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cfm.max() / 1.5 if normalize else cfm.max() / 2
+    for i, j in itertools.product(range(cfm.shape[0]), range(cfm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cfm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cfm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:,}".format(cfm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cfm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.show()
+
+
+# In[28]:
+
+
+#plot the condusion_matrix
+plot_confusion_matrix(cfm,np.arange(0,10).tolist(),
+                          title= 'Confusion matrix for MLP model',
+                          cmap=None,
+                          normalize=False,color='Reds')
+
+
+# ## Part 2 : Architecture B for convolution neural network
+# In this part :
+# 
+# - we create first our architecture
+# 
+# - Implement the architecture diagram 
+# 
+# - Train the neural network on the MNIST dataset (training set only)
+# 
+# - Visualize the evolution of our model’s accuracy
+# 
+# - Visualize the prediction of the neural network for a new input image
+
+# In[29]:
+
+
+# We Reshape 
+x_train_B = x_train.reshape(-1, 28,28, 1)
+x_test_B = x_test.reshape(-1, 28,28, 1)
+x_train_B.shape,x_test_B.shape
+
+
+# ### Model Creation 
+
+# In[30]:
+
+
+model_B = Sequential()
+model_B.add(Conv2D(48,kernel_size=(5,5),activation='relu',input_shape=(28,28,1),padding='same'))
+model_B.add(MaxPooling2D((3, 3),padding='same'))
+model_B.add(Conv2D(64, (3, 3), activation='relu',padding='same'))
+model_B.add(MaxPooling2D(pool_size=(2, 2),padding='same'))
+model_B.add(Conv2D(128, (2, 2), activation='relu',padding='same'))
+model_B.add(MaxPooling2D(pool_size=(2, 2),padding='same'))
+model_B.add(Flatten())
+model_B.add(Dense(116, activation='relu'))
+model_B.add(Dense(64, activation='relu'))
+model_B.add(Dense(10, activation='softmax'))
+model_B.summary() 
+
+
+# ### Implementing Architecture B 
+
+# In[31]:
+
+
+keras.utils.plot_model(model_B, show_shapes=True)
+
+
+# ### Trainning the Convolutionnal  Neuronal Network B
+
+# In[32]:
+
+
+#compile the model by choosing the loss, the metrics and the otpimizer
+model_B.compile(loss="categorical_crossentropy", metrics=['accuracy'], optimizer='adam')
+
+
+# In[33]:
+
+
+B = model_B.fit(x_train_B, y_train, epochs=10, batch_size=250)
+
+
+# ### Visualize the evolution of the model’s accuracy  
+
+# In[34]:
+
+
+sns.set()
+plt.figure(figsize=(10,6))
+plt.subplot(1, 2, 1)
+plt.plot(B.history['loss'],color="green")
+plt.title('CNN model loss on train set')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+
+plt.subplot(1, 2, 2)
+plt.plot(B.history['accuracy'],color="red")
+plt.title('CNN model accuracy on train set')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.show()
+
+
+# ### Prediction
+
+# In[35]:
+
+
+##prediction 
+y_pred_prob_B = model_B.predict(x_test_B)
+y_pred_B = np.argmax(y_pred_prob_B, axis=1)
+
+
+# In[36]:
+
+
+#ploting a prediction result for a random image in the test sample
+i=np.random.randint(1,10000)
+sns.set_style("white")
+plt.imshow(x_test[i,:,:], cmap='gray')
+plt.title(f"True digit: {np.argmax(y_test[i])}")
+print(f'CNN model prediction : {y_pred_B[i]} with predicted probability : \n{y_pred_prob_B[i]}')
+
+
+# In[37]:
+
+
+#Here we create a list of our images for which the model predict poorly
+#We call this list false_indices
+false_indices_B =  np.where(np.argmax(y_test,axis = 1) != y_pred_B) ## false_indices is then a tuple 
+false_indices_B[0].shape
+print(false_indices_B[0])
+print(false_indices_B[0][1])
+
+
+
+
+
+## Here we show a exemple of poor prediction
+## We choose false_indices[0][20] who is the 20th image for which the model predict poorly
+sns.set_style("white")
+plt.imshow(x_test[false_indices_B[0][20],:,:], cmap='gray') 
+plt.title(f"True digit: {np.argmax(y_test[false_indices_B[0][20]])}")
+print(f'CNN model prediction : {y_pred_B[false_indices[0][20]]} with predicted probability : \n{y_pred_prob_B[false_indices[0][20]]}')
+
+
+# In[39]:
+
+
+#Our Model Accuracy
+loss_B, accuracy_B = model_B.evaluate(x_test_B,y_test)
+print()
+print("CNN model accuracy: %0.3f " % (accuracy_B))
+
+
+# In[40]:
+
+
+#Evaluation of the classification accuracy
+cfm_B = confusion_matrix(y_test_copy,y_pred_B,labels=np.arange(0,10).tolist())
+
+
+# In[41]:
+
+
+#Ploting our confusion matrix
+plot_confusion_matrix(cfm_B,np.arange(0,10).tolist(),
+                          title= 'Confusion matrix for MLP model',
+                          cmap=None,
+                          normalize=False,color='ocean_r')
+
+
+# In[42]:
+
+
+#Here we create a subplot of our fake indices
+rows = 4
+cols = 9
+
+f = plt.figure(figsize=(2*cols,2*rows))
+sub_plot = 1
+for i in range(27):
+        f.add_subplot(rows,cols,sub_plot) 
+        sub_plot+=1
+        plt.imshow(x_test[false_indices_B[0][i],:,:], cmap='Blues')
+        plt.axis("off")
+        plt.title("T: "+str(y_test_copy[false_indices_B[0][i]])+" P:"+str(y_pred_B[false_indices[0][20]]), y=-0.15,color="Red")
+plt.show()
